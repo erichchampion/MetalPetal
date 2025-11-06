@@ -466,6 +466,13 @@
 			remoteGlobalIDString = 45FF391DFF638DC1677EE9B92B249B48;
 			remoteInfo = "MetalPetal-AppleSilicon-Core-Swift";
 		};
+		A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F6A6D917959D4C48ADF90BBFC7A7F507;
+			remoteInfo = "MetalPetal-Core-Swift";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -1453,6 +1460,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6E7 /* PBXTargetDependency */,
 			);
 			name = "MetalPetal-AppleSilicon-Core-Swift";
 			productName = MetalPetal;
@@ -1873,6 +1881,12 @@
 			target = F6A6D917959D4C48ADF90BBFC7A7F507 /* MetalPetal-Core-Swift */;
 			targetProxy = 82A7FA5D3EEF740BCB761ED0CA704326 /* PBXContainerItemProxy */;
 		};
+		B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6E7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "MetalPetal-Core-Swift";
+			target = F6A6D917959D4C48ADF90BBFC7A7F507 /* MetalPetal-Core-Swift */;
+			targetProxy = A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -1992,6 +2006,9 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
 				"CODE_SIGN_IDENTITY[sdk=watchos*]" = "";
 				COMBINE_HIDPI_IMAGES = YES;
+				"EXCLUDED_ARCHS[sdk=iphoneos*]" = "$(ARCHS_STANDARD)";
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = "$(ARCHS_STANDARD)";
+				SUPPORTED_PLATFORMS = "macosx";
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -2185,7 +2202,7 @@
 			};
 			name = Release;
 		};
-		B61D30EE3169981F25C3CA8C9FA06CC4 /* Debug */ = {
+			B61D30EE3169981F25C3CA8C9FA06CC4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 32649AF567A0346EAB8CD35723F6C9F6 /* MetalPetal-AppleSilicon-Core-Swift.debug.xcconfig */;
 			buildSettings = {
@@ -2195,6 +2212,9 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
 				"CODE_SIGN_IDENTITY[sdk=watchos*]" = "";
 				COMBINE_HIDPI_IMAGES = YES;
+				"EXCLUDED_ARCHS[sdk=iphoneos*]" = "$(ARCHS_STANDARD)";
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = "$(ARCHS_STANDARD)";
+				SUPPORTED_PLATFORMS = "macosx";
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
