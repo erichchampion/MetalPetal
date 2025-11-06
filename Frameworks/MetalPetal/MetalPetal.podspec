@@ -2,10 +2,10 @@ Pod::Spec.new do |s|
 s.name         = 'MetalPetal'
 s.version      = '1.0'
 s.author       = { 'YuAo' => 'me@imyuao.com' }
-s.homepage     = 'https://github.com/MetalPetal/MetalPetal'
+s.homepage     = 'https://github.com/erichchampion/MetalPetal'
 s.summary      = 'GPU-accelerated image and video processing framework based on Metal.'
 s.license      = { :type => 'MIT'}
-s.source       = { :git => 'https://github.com/MetalPetal/MetalPetal.git', :tag => s.version}
+s.source       = { :git => 'https://github.com/erichchampion/MetalPetal.git', :tag => s.version}
 s.requires_arc = true
 
 s.ios.deployment_target = '11.0'
