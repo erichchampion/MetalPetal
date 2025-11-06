@@ -1,0 +1,15 @@
+{
+  "originHash" : "a9e374fa917535c366f835525fddcd4d4ffa1a9c4684618b9ef2bcdd7a62127a",
+  "pins" : [
+    {
+      "identity" : "videoio",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/erichchampion/VideoIO",
+      "state" : {
+        "branch" : "master",
+        "revision" : "26fad026541c1fb262c45210b5dd0baa2cfe23a6"
+      }
+    }
+  ],
+  "version" : 3
+}
