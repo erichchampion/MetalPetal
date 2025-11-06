@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import AVFoundation
+@preconcurrency import AVFoundation
 
 #if SWIFT_PACKAGE
 import MetalPetalObjectiveC.Core
@@ -242,7 +242,7 @@ public class MTIVideoComposition {
             }
         }
         
-        class Instruction: NSObject, AVVideoCompositionInstructionProtocol {
+        class Instruction: NSObject, AVVideoCompositionInstructionProtocol, @unchecked Sendable {
             
             typealias Handler = (_ request: VideoCompositionRequest) -> Void
             
@@ -264,9 +264,15 @@ public class MTIVideoComposition {
             }
         }
         
-        let sourcePixelBufferAttributes: [String : Any]? = [kCVPixelBufferPixelFormatTypeKey as String: [kCVPixelFormatType_420YpCbCr8BiPlanarFullRange, kCVPixelFormatType_32BGRA, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange]]
-        
-        let requiredPixelBufferAttributesForRenderContext: [String : Any] = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
+        // These properties are required by AVVideoCompositing protocol.
+        // Using nonisolated computed properties to satisfy Swift 6 sendability requirements
+        nonisolated var sourcePixelBufferAttributes: [String : Any]? {
+            [kCVPixelBufferPixelFormatTypeKey as String: [kCVPixelFormatType_420YpCbCr8BiPlanarFullRange, kCVPixelFormatType_32BGRA, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange]] as [String : Any]?
+        }
+
+        nonisolated var requiredPixelBufferAttributesForRenderContext: [String : Any] {
+            [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA] as [String : Any]
+        }
         
         private var pendingRequests: Set<VideoCompositionRequest> = []
         private let pendingRequestsLock = MTILockCreate()

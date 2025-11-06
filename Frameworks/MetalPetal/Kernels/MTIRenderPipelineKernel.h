@@ -21,7 +21,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class MTIRenderPipeline, MTIFunctionDescriptor, MTIContext, MTIImage, MTIRenderPassOutputDescriptor, MTIAlphaTypeHandlingRule;
 
-FOUNDATION_EXPORT NSUInteger const MTIRenderPipelineMaximumColorAttachmentCount;
+/// Maximum number of color attachments supported by Metal render pipelines.
+/// This matches the Metal API's limit for render targets.
+#define MTIRenderPipelineMaximumColorAttachmentCount 8
 
 __attribute__((objc_subclassing_restricted))
 @interface MTIRenderPipelineKernelConfiguration: NSObject <MTIKernelConfiguration>

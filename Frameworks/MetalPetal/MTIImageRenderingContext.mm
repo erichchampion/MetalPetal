@@ -237,12 +237,9 @@ MTIContextImageAssociatedValueTableName const MTIContextImagePersistentResolutio
             if (promise.dimensions.width > 0 && promise.dimensions.height > 0 && promise.dimensions.depth > 0) {
                 
                 NSUInteger dependencyCount = promise.dependencies.count;
-                
-                id<MTIImagePromiseResolution> inputResolutions[dependencyCount];
-                memset(inputResolutions, 0, sizeof inputResolutions);
-                
-                id<MTLSamplerState> inputSamplerStates[dependencyCount];
-                memset(inputSamplerStates, 0, sizeof inputSamplerStates);
+
+                std::vector<id<MTIImagePromiseResolution>> inputResolutions(dependencyCount, nil);
+                std::vector<id<MTLSamplerState>> inputSamplerStates(dependencyCount, nil);
                 
                 std::unordered_map<__unsafe_unretained MTIImage *, __unsafe_unretained id<MTLTexture>, MTIImageRendering::ObjcPointerHash, MTIImageRendering::ObjcPointerIdentityEqual> textureMap;
                 

@@ -107,8 +107,10 @@ __attribute__((objc_subclassing_restricted))
 
 @implementation MTIFunctionArgumentsEncoder
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 + (BOOL)encodeArguments:(NSArray<MTLArgument *> *)arguments values:(NSDictionary<NSString *,id> *)parameters functionType:(MTLFunctionType)functionType encoder:(id<MTLCommandEncoder>)encoder error:(NSError * __autoreleasing *)inOutError {
-    
+
     for (MTLArgument *argument in arguments) {
         if (argument.type != MTLArgumentTypeBuffer) {
             continue;
@@ -237,5 +239,6 @@ __attribute__((objc_subclassing_restricted))
     
     return YES;
 }
+#pragma clang diagnostic pop
 
 @end

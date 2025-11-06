@@ -22,14 +22,14 @@ final class ImageLoadingTests: XCTestCase {
         }
         CVPixelBufferLockBaseAddress(pixelBuffer, [])
         if let pixels = CVPixelBufferGetBaseAddress(pixelBuffer)?.assumingMemoryBound(to: UInt8.self) {
-            pixels.advanced(by: 0).assign(repeating: 255, count: 1)
-            pixels.advanced(by: 1).assign(repeating: 0, count: 1)
-            pixels.advanced(by: 2).assign(repeating: 0, count: 1)
-            pixels.advanced(by: 3).assign(repeating: 255, count: 1)
-            pixels.advanced(by: 0 + CVPixelBufferGetBytesPerRow(pixelBuffer)).assign(repeating: 0, count: 1)
-            pixels.advanced(by: 1 + CVPixelBufferGetBytesPerRow(pixelBuffer)).assign(repeating: 255, count: 1)
-            pixels.advanced(by: 2 + CVPixelBufferGetBytesPerRow(pixelBuffer)).assign(repeating: 0, count: 1)
-            pixels.advanced(by: 3 + CVPixelBufferGetBytesPerRow(pixelBuffer)).assign(repeating: 255, count: 1)
+            pixels.advanced(by: 0).update(repeating: 255, count: 1)
+            pixels.advanced(by: 1).update(repeating: 0, count: 1)
+            pixels.advanced(by: 2).update(repeating: 0, count: 1)
+            pixels.advanced(by: 3).update(repeating: 255, count: 1)
+            pixels.advanced(by: 0 + CVPixelBufferGetBytesPerRow(pixelBuffer)).update(repeating: 0, count: 1)
+            pixels.advanced(by: 1 + CVPixelBufferGetBytesPerRow(pixelBuffer)).update(repeating: 255, count: 1)
+            pixels.advanced(by: 2 + CVPixelBufferGetBytesPerRow(pixelBuffer)).update(repeating: 0, count: 1)
+            pixels.advanced(by: 3 + CVPixelBufferGetBytesPerRow(pixelBuffer)).update(repeating: 255, count: 1)
         }
         CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
         
@@ -63,14 +63,14 @@ final class ImageLoadingTests: XCTestCase {
         }
         CVPixelBufferLockBaseAddress(pixelBuffer, [])
         if let pixels = CVPixelBufferGetBaseAddress(pixelBuffer)?.assumingMemoryBound(to: UInt8.self) {
-            pixels.advanced(by: 0).assign(repeating: 255, count: 1)
-            pixels.advanced(by: 1).assign(repeating: 0, count: 1)
-            pixels.advanced(by: 2).assign(repeating: 0, count: 1)
-            pixels.advanced(by: 3).assign(repeating: 255, count: 1)
-            pixels.advanced(by: 0 + CVPixelBufferGetBytesPerRow(pixelBuffer)).assign(repeating: 0, count: 1)
-            pixels.advanced(by: 1 + CVPixelBufferGetBytesPerRow(pixelBuffer)).assign(repeating: 255, count: 1)
-            pixels.advanced(by: 2 + CVPixelBufferGetBytesPerRow(pixelBuffer)).assign(repeating: 0, count: 1)
-            pixels.advanced(by: 3 + CVPixelBufferGetBytesPerRow(pixelBuffer)).assign(repeating: 255, count: 1)
+            pixels.advanced(by: 0).update(repeating: 255, count: 1)
+            pixels.advanced(by: 1).update(repeating: 0, count: 1)
+            pixels.advanced(by: 2).update(repeating: 0, count: 1)
+            pixels.advanced(by: 3).update(repeating: 255, count: 1)
+            pixels.advanced(by: 0 + CVPixelBufferGetBytesPerRow(pixelBuffer)).update(repeating: 0, count: 1)
+            pixels.advanced(by: 1 + CVPixelBufferGetBytesPerRow(pixelBuffer)).update(repeating: 255, count: 1)
+            pixels.advanced(by: 2 + CVPixelBufferGetBytesPerRow(pixelBuffer)).update(repeating: 0, count: 1)
+            pixels.advanced(by: 3 + CVPixelBufferGetBytesPerRow(pixelBuffer)).update(repeating: 255, count: 1)
         }
         CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
         
@@ -278,15 +278,13 @@ final class CGImageLoadingTests: XCTestCase {
     
     func testCGImageLoading_sRGB() throws {
         let context = try makeContext()
-        
+
         let image = MTIImage(cgImage: try ImageGenerator.makeMonochromeImage([[128]]), options: MTICGImageLoadingOptions(colorSpace: CGColorSpace(name: CGColorSpace.linearSRGB)!), isOpaque: true)
         let linearImage = try context.makeCGImage(from: image)
         PixelEnumerator.enumeratePixels(in: linearImage) { (pixel, coordinates) in
             if coordinates.x == 0 && coordinates.y == 0 {
-                let c = 128.0/255.0
-                
                 // Should we use `round` here? https://developer.apple.com/documentation/metal/mtlrenderpipelinestate/3608177-texturewriteroundingmode
-                let linearValue = UInt8(round((c <= 0.04045) ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) * 255.0))
+                let linearValue = ColorSpaceConversion.sRGBToLinearUInt8(128)
                 XCTAssert(pixel.r == linearValue && pixel.g == linearValue && pixel.b == linearValue && pixel.a == 255)
             }
         }
@@ -494,10 +492,8 @@ final class TextureLoaderImageLoadingTests: XCTestCase {
         let linearImage = try context.makeCGImage(from: image)
         PixelEnumerator.enumeratePixels(in: linearImage) { (pixel, coordinates) in
             if coordinates.x == 0 && coordinates.y == 0 {
-                let c = 128.0/255.0
-                
                 // Should we use `round` here? https://developer.apple.com/documentation/metal/mtlrenderpipelinestate/3608177-texturewriteroundingmode
-                let linearValue = UInt8(round((c <= 0.04045) ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) * 255.0))
+                let linearValue = ColorSpaceConversion.sRGBToLinearUInt8(128)
                 XCTAssert(pixel.r == linearValue && pixel.g == linearValue && pixel.b == linearValue && pixel.a == 255)
             }
         }

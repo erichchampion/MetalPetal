@@ -27,8 +27,6 @@
 #import "MTIPixelFormat.h"
 #import "MTIFunctionArgumentsEncoder.h"
 
-NSUInteger const MTIRenderPipelineMaximumColorAttachmentCount = 8;
-
 @interface MTIRenderPipelineKernelConfiguration () {
     MTLPixelFormat _pixelFormats[MTIRenderPipelineMaximumColorAttachmentCount];
 }

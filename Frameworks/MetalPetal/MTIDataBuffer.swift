@@ -15,7 +15,12 @@ import MetalPetalObjectiveC.Core
 extension MTIDataBuffer {
     
     public convenience init?<T>(values: [T], options: MTLResourceOptions = []) {
-        self.init(bytes: values, length: UInt(MemoryLayout<T>.size * values.count), options: options)
+        // Use withUnsafeBytes to safely access the array's memory and copy it to Data
+        // This avoids the warning about forming unsafe pointers to generic arrays
+        let data = values.withUnsafeBytes { bytes in
+            Data(bytes: bytes.baseAddress!, count: bytes.count)
+        }
+        self.init(data: data, options: options)
     }
     
     public func unsafeAccess<ReturnType, BufferContentType>(_ block: (UnsafeMutableBufferPointer<BufferContentType>) throws -> ReturnType) rethrows -> ReturnType {
