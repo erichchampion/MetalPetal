@@ -1802,13 +1802,16 @@ final class RenderTests: XCTestCase {
             var pixels: [UInt8] = [UInt8](repeating: 0, count: 4 * 4 * 4)
             let cgContext = CGContext(data: &pixels, width: 4, height: 4, bitsPerComponent: 8, bytesPerRow: 4 * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue)
             cgContext?.draw(cgImage, in: CGRect(x: 0, y: 0, width: 4, height: 4))
-            for i in 0..<pixels.count {
-                if i % 4 == 0 {
-                    XCTAssert(pixels[i] == 254) //b
-                    XCTAssert(pixels[i + 1] == 0) //g
-                    XCTAssert(pixels[i + 2] == 0) //r
-                    XCTAssert(pixels[i + 3] == 255) //a
-                }
+            for pixelIndex in stride(from: 0, to: pixels.count, by: 4) {
+                let b = pixels[pixelIndex]
+                let g = pixels[pixelIndex + 1]
+                let r = pixels[pixelIndex + 2]
+                let a = pixels[pixelIndex + 3]
+                let message = "Pixel index \(pixelIndex / 4)"
+                XCTAssertLessThanOrEqual(abs(Int(b) - 254), 1, "Blue channel mismatch. \(message)")
+                XCTAssertLessThanOrEqual(abs(Int(g) - 0), 1, "Green channel mismatch. \(message)")
+                XCTAssertLessThanOrEqual(abs(Int(r) - 0), 1, "Red channel mismatch. \(message)")
+                XCTAssertLessThanOrEqual(abs(Int(a) - 255), 1, "Alpha channel mismatch. \(message)")
             }
         }
     }

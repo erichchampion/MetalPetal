@@ -10,6 +10,113 @@
 #import "MTIVector.h"
 #import "MTIError.h"
 #import "MTIBuffer.h"
+#import <TargetConditionals.h>
+
+#if defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 160000
+#define MTI_HAS_METAL_BINDING_REFLECTION 1
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 130000
+#define MTI_HAS_METAL_BINDING_REFLECTION 1
+#elif defined(__TV_OS_VERSION_MAX_ALLOWED) && __TV_OS_VERSION_MAX_ALLOWED >= 160000
+#define MTI_HAS_METAL_BINDING_REFLECTION 1
+#else
+#define MTI_HAS_METAL_BINDING_REFLECTION 0
+#endif
+
+static const NSUInteger MTILegacyArgumentTypeBuffer = 0;
+static const MTLDataType MTIArgumentDataTypeInvalid = (MTLDataType)NSIntegerMax;
+
+@protocol MTLLegacyArgument <NSObject>
+@property (readonly) NSString *name;
+@property (readonly) NSUInteger index;
+@property (readonly, getter=isActive) BOOL active;
+@property (readonly) NSUInteger type;
+@property (readonly) NSUInteger bufferDataSize;
+@property (readonly) NSUInteger bufferDataType;
+@end
+
+static Class MTILegacyArgumentClass(void) {
+    static Class cls;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        cls = NSClassFromString(@"MTLArgument");
+    });
+    return cls;
+}
+
+static BOOL MTIArgumentIsLegacyArgument(id argument) {
+    Class legacyClass = MTILegacyArgumentClass();
+    return legacyClass && [argument isKindOfClass:legacyClass];
+}
+
+static NSString * MTIArgumentGetName(id argument) {
+#if MTI_HAS_METAL_BINDING_REFLECTION
+    if (@available(iOS 16.0, macOS 13.0, tvOS 16.0, *)) {
+        if ([argument conformsToProtocol:@protocol(MTLBinding)]) {
+            return [(id<MTLBinding>)argument name];
+        }
+    }
+#endif
+    if (MTIArgumentIsLegacyArgument(argument)) {
+        return [(id<MTLLegacyArgument>)argument name];
+    }
+    return nil;
+}
+
+static NSUInteger MTIArgumentGetIndex(id argument) {
+#if MTI_HAS_METAL_BINDING_REFLECTION
+    if (@available(iOS 16.0, macOS 13.0, tvOS 16.0, *)) {
+        if ([argument conformsToProtocol:@protocol(MTLBinding)]) {
+            return [(id<MTLBinding>)argument index];
+        }
+    }
+#endif
+    if (MTIArgumentIsLegacyArgument(argument)) {
+        return [(id<MTLLegacyArgument>)argument index];
+    }
+    return NSNotFound;
+}
+
+static BOOL MTIArgumentIsBuffer(id argument) {
+#if MTI_HAS_METAL_BINDING_REFLECTION
+    if (@available(iOS 16.0, macOS 13.0, tvOS 16.0, *)) {
+        if ([argument conformsToProtocol:@protocol(MTLBinding)]) {
+            return [(id<MTLBinding>)argument type] == MTLBindingTypeBuffer;
+        }
+    }
+#endif
+    if (MTIArgumentIsLegacyArgument(argument)) {
+        return [(id<MTLLegacyArgument>)argument type] == MTILegacyArgumentTypeBuffer;
+    }
+    return NO;
+}
+
+static NSUInteger MTIArgumentGetBufferDataSize(id argument) {
+#if MTI_HAS_METAL_BINDING_REFLECTION
+    if (@available(iOS 16.0, macOS 13.0, tvOS 16.0, *)) {
+        if ([argument conformsToProtocol:@protocol(MTLBufferBinding)]) {
+            return [(id<MTLBufferBinding>)argument bufferDataSize];
+        }
+    }
+#endif
+    if (MTIArgumentIsLegacyArgument(argument)) {
+        return [(id<MTLLegacyArgument>)argument bufferDataSize];
+    }
+    return 0;
+}
+
+static MTLDataType MTIArgumentGetBufferDataType(id argument) {
+#if MTI_HAS_METAL_BINDING_REFLECTION
+    if (@available(iOS 16.0, macOS 13.0, tvOS 16.0, *)) {
+        if ([argument conformsToProtocol:@protocol(MTLBufferBinding)]) {
+            return [(id<MTLBufferBinding>)argument bufferDataType];
+        }
+    }
+#endif
+    if (MTIArgumentIsLegacyArgument(argument)) {
+        return (MTLDataType)[(id<MTLLegacyArgument>)argument bufferDataType];
+    }
+    return MTIArgumentDataTypeInvalid;
+}
 
 static inline void MTIArgumentsEncoderEncodeBytes(MTLFunctionType functionType, id<MTLCommandEncoder> encoder, const void * bytes, NSUInteger length, NSUInteger index) {
     switch (functionType) {
@@ -65,14 +172,14 @@ __attribute__((objc_subclassing_restricted))
 @property (nonatomic) BOOL used;
 @property (nonatomic, strong) NSError *error;
 @property (nonatomic, strong, readonly) id<MTLCommandEncoder> encoder;
-@property (nonatomic, strong, readonly) MTLArgument *argument;
+@property (nonatomic, strong, readonly) id argument;
 @property (nonatomic, readonly) MTLFunctionType functionType;
 
 @end
 
 @implementation MTIFunctionArgumentEncodingProxyImplementation
 
-- (instancetype)initWithEncoder:(id<MTLCommandEncoder>)encoder functionType:(MTLFunctionType)functionType argument:(MTLArgument *)argument {
+- (instancetype)initWithEncoder:(id<MTLCommandEncoder>)encoder functionType:(MTLFunctionType)functionType argument:(id)argument {
     if (self = [super init]) {
         _encoder = encoder;
         _functionType = functionType;
@@ -86,11 +193,16 @@ __attribute__((objc_subclassing_restricted))
 - (void)encodeBytes:(const void *)bytes length:(NSUInteger)length {
     NSAssert(_encoder != nil, @"An encoding proxy can only encode/reportError once.");
     if (_encoder) {
-        if (length != _argument.bufferDataSize) {
+        NSUInteger expectedSize = MTIArgumentGetBufferDataSize(_argument);
+        NSUInteger index = MTIArgumentGetIndex(_argument);
+        if (expectedSize == 0 || index == NSNotFound) {
+            _error = MTIErrorCreate(MTIErrorUnsupportedParameterType, (@{@"Argument": _argument}));
+            _used = YES;
+        } else if (length != expectedSize) {
             _error = MTIErrorCreate(MTIErrorParameterDataSizeMismatch, (@{@"Argument": _argument}));
             _used = YES;
         } else {
-            MTIArgumentsEncoderEncodeBytes(_functionType, _encoder, bytes, length, _argument.index);
+            MTIArgumentsEncoderEncodeBytes(_functionType, _encoder, bytes, length, index);
             _used = YES;
         }
         _encoder = nil;
@@ -107,66 +219,80 @@ __attribute__((objc_subclassing_restricted))
 
 @implementation MTIFunctionArgumentsEncoder
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-+ (BOOL)encodeArguments:(NSArray<MTLArgument *> *)arguments values:(NSDictionary<NSString *,id> *)parameters functionType:(MTLFunctionType)functionType encoder:(id<MTLCommandEncoder>)encoder error:(NSError * __autoreleasing *)inOutError {
-
-    for (MTLArgument *argument in arguments) {
-        if (argument.type != MTLArgumentTypeBuffer) {
++ (BOOL)encodeArguments:(NSArray *)arguments values:(NSDictionary<NSString *,id> *)parameters functionType:(MTLFunctionType)functionType encoder:(id<MTLCommandEncoder>)encoder error:(NSError * __autoreleasing *)inOutError {
+    
+    for (id argument in arguments) {
+        if (!MTIArgumentIsBuffer(argument)) {
             continue;
         }
-        id value = parameters[argument.name];
+        NSString *argumentName = MTIArgumentGetName(argument);
+        if (argumentName.length == 0) {
+            continue;
+        }
+        id value = parameters[argumentName];
         if (!value) {
             continue;
         }
+        
+        NSUInteger index = MTIArgumentGetIndex(argument);
+        NSUInteger dataSize = MTIArgumentGetBufferDataSize(argument);
+        MTLDataType dataType = MTIArgumentGetBufferDataType(argument);
+        
+        if (index == NSNotFound || dataSize == 0 || dataType == MTIArgumentDataTypeInvalid) {
+            if (inOutError != nil) {
+                *inOutError = MTIErrorCreate(MTIErrorUnsupportedParameterType, (@{@"Argument": argument, @"Value": value ?: [NSNull null]}));
+            }
+            return NO;
+        }
+        
         if ([value isKindOfClass:[NSNumber class]]) {
             NSNumber *number = value;
-            switch (argument.bufferDataType) {
+            switch (dataType) {
                 case MTLDataTypeBool: {
                     bool b = (bool)number.boolValue;
-                    NSAssert(sizeof(b) == argument.bufferDataSize, @"");
-                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &b, sizeof(b), argument.index);
+                    NSAssert(sizeof(b) == dataSize, @"");
+                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &b, sizeof(b), index);
                 } break;
                 case MTLDataTypeInt: {
                     int i = number.intValue;
-                    NSAssert(sizeof(i) == argument.bufferDataSize, @"");
-                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &i, sizeof(i), argument.index);
+                    NSAssert(sizeof(i) == dataSize, @"");
+                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &i, sizeof(i), index);
                 } break;
                 case MTLDataTypeUInt: {
                     unsigned int i = number.unsignedIntValue;
-                    NSAssert(sizeof(i) == argument.bufferDataSize, @"");
-                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &i, sizeof(i), argument.index);
+                    NSAssert(sizeof(i) == dataSize, @"");
+                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &i, sizeof(i), index);
                 } break;
                 case MTLDataTypeChar: {
                     char c = number.charValue;
-                    NSAssert(sizeof(c) == argument.bufferDataSize, @"");
-                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &c, sizeof(c), argument.index);
+                    NSAssert(sizeof(c) == dataSize, @"");
+                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &c, sizeof(c), index);
                 } break;
                 case MTLDataTypeUChar: {
                     unsigned char c = number.unsignedCharValue;
-                    NSAssert(sizeof(c) == argument.bufferDataSize, @"");
-                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &c, sizeof(c), argument.index);
+                    NSAssert(sizeof(c) == dataSize, @"");
+                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &c, sizeof(c), index);
                 } break;
                 case MTLDataTypeShort: {
                     short s = number.shortValue;
-                    NSAssert(sizeof(s) == argument.bufferDataSize, @"");
-                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &s, sizeof(s), argument.index);
+                    NSAssert(sizeof(s) == dataSize, @"");
+                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &s, sizeof(s), index);
                 } break;
                 case MTLDataTypeUShort: {
                     unsigned short s = number.unsignedShortValue;
-                    NSAssert(sizeof(s) == argument.bufferDataSize, @"");
-                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &s, sizeof(s), argument.index);
+                    NSAssert(sizeof(s) == dataSize, @"");
+                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &s, sizeof(s), index);
                 } break;
                 case MTLDataTypeFloat: {
                     float f = number.floatValue;
-                    NSAssert(sizeof(f) == argument.bufferDataSize, @"");
-                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &f, sizeof(f), argument.index);
+                    NSAssert(sizeof(f) == dataSize, @"");
+                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &f, sizeof(f), index);
                 } break;
                 case MTLDataTypeHalf: {
                     float f = number.floatValue;
                     __fp16 h = f;
-                    NSAssert(sizeof(h) == argument.bufferDataSize, @"");
-                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &h, sizeof(h), argument.index);
+                    NSAssert(sizeof(h) == dataSize, @"");
+                    MTIArgumentsEncoderEncodeBytes(functionType, encoder, &h, sizeof(h), index);
                 } break;
                 default: {
                     if (inOutError != nil) {
@@ -184,23 +310,23 @@ __attribute__((objc_subclassing_restricted))
             @MTI_DEFER {
                 free(valuePtr);
             };
-            if (argument.bufferDataSize != size) {
+            if (dataSize != size) {
                 if (inOutError != nil) {
                     *inOutError = MTIErrorCreate(MTIErrorParameterDataSizeMismatch, (@{@"Argument": argument, @"Value": value}));
                 }
                 return NO;
             }
-            MTIArgumentsEncoderEncodeBytes(functionType, encoder, valuePtr, size, argument.index);
+            MTIArgumentsEncoderEncodeBytes(functionType, encoder, valuePtr, size, index);
         } else if ([value isKindOfClass:[NSData class]]) {
             NSData *data = (NSData *)value;
-            MTIArgumentsEncoderEncodeBytes(functionType, encoder, data.bytes, data.length, argument.index);
+            MTIArgumentsEncoderEncodeBytes(functionType, encoder, data.bytes, data.length, index);
         } else if ([value isKindOfClass:[MTIVector class]]) {
             MTIVector *vector = (MTIVector *)value;
-            MTIArgumentsEncoderEncodeBytes(functionType, encoder, vector.bytes, vector.byteLength, argument.index);
+            MTIArgumentsEncoderEncodeBytes(functionType, encoder, vector.bytes, vector.byteLength, index);
         } else if ([value isKindOfClass:[MTIDataBuffer class]]) {
             MTIDataBuffer *dataBuffer = (MTIDataBuffer *)value;
             id<MTLBuffer> buffer = [dataBuffer bufferForDevice:encoder.device];
-            MTIArgumentsEncoderEncodeBuffer(functionType, encoder, buffer, argument.index);
+            MTIArgumentsEncoderEncodeBuffer(functionType, encoder, buffer, index);
         } else {
             static Class<MTIFunctionArgumentEncoding> SIMDValueEncoder;
             static dispatch_once_t onceToken;
@@ -239,6 +365,4 @@ __attribute__((objc_subclassing_restricted))
     
     return YES;
 }
-#pragma clang diagnostic pop
-
 @end

@@ -17,10 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @protocol MTIFunctionArgumentEncoding <NSObject>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-+ (BOOL)encodeValue:(id)value argument:(MTLArgument *)argument proxy:(id<MTIFunctionArgumentEncodingProxy>)proxy error:(NSError **)error;
-#pragma clang diagnostic pop
++ (BOOL)encodeValue:(id)value argument:(id)argument proxy:(id<MTIFunctionArgumentEncodingProxy>)proxy error:(NSError **)error;
 
 @end
 
@@ -31,14 +28,11 @@ __attribute__((objc_subclassing_restricted))
 
 + (instancetype)new NS_UNAVAILABLE;
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-+ (BOOL)encodeArguments:(NSArray<MTLArgument *>*)arguments
++ (BOOL)encodeArguments:(NSArray *)arguments
                  values:(NSDictionary<NSString *, id> *)parameters
            functionType:(MTLFunctionType)functionType
                 encoder:(id<MTLCommandEncoder>)encoder
-                  error:(NSError **)error;
-#pragma clang diagnostic pop
+                  error:(NSError **)error NS_SWIFT_NAME(encode(_:values:functionType:encoder:));
 
 @end
 

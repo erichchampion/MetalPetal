@@ -67,3 +67,4 @@ The asset catalog is open in multiple Xcode windows/workspaces.
 - **Framework Only**: Use `.swiftpm/xcode/package.xcworkspace` or `swift build`
 - **Never mix**: Don't include examples project files when building the framework workspace
 
+

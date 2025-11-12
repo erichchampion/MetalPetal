@@ -19,6 +19,17 @@ final class UtilitiesTests: XCTestCase {
         return try! String(contentsOf: headerURL)
     }()
     
+    private func encodeArguments(using reflection: MTLComputePipelineReflection,
+                                 values: [String: Any],
+                                 functionType: MTLFunctionType,
+                                 encoder: MTLCommandEncoder) throws {
+        if #available(macOS 13.0, iOS 16.0, tvOS 16.0, *) {
+            try MTIFunctionArgumentsEncoder.encode(reflection.bindings as [Any], values: values, functionType: functionType, encoder: encoder)
+        } else {
+            try MTIFunctionArgumentsEncoder.encode(reflection.arguments, values: values, functionType: functionType, encoder: encoder)
+        }
+    }
+    
     func testLock() throws {
         var counter: Int = 0
         let lock = MTILockCreate()
@@ -175,12 +186,12 @@ final class UtilitiesTests: XCTestCase {
             commandEncoder?.endEncoding()
         }
         do {
-            try MTIFunctionArgumentsEncoder.encode(state.reflection.arguments, values: ["color": SIMD3<Float>(0,0,0)], functionType: .kernel, encoder: commandEncoder!)
+            try encodeArguments(using: state.reflection, values: ["color": SIMD3<Float>(0,0,0)], functionType: .kernel, encoder: commandEncoder!)
         } catch {
             let encoderError = try XCTUnwrap(error as? MTIError)
             XCTAssert(encoderError.code == .parameterDataSizeMismatch)
         }
-        try MTIFunctionArgumentsEncoder.encode(state.reflection.arguments, values: ["color": MTLPackedFloat3Make(0, 0, 0)], functionType: .kernel, encoder: commandEncoder!)
+        try encodeArguments(using: state.reflection, values: ["color": MTLPackedFloat3Make(0, 0, 0)], functionType: .kernel, encoder: commandEncoder!)
     }
     #endif
     
@@ -244,7 +255,7 @@ final class UtilitiesTests: XCTestCase {
             commandEncoder?.endEncoding()
         }
         do {
-            try MTIFunctionArgumentsEncoder.encode(state.reflection.arguments, values: ["color": SIMD4<Int>(128, 0, 0, 0)], functionType: .kernel, encoder: commandEncoder!)
+            try encodeArguments(using: state.reflection, values: ["color": SIMD4<Int>(128, 0, 0, 0)], functionType: .kernel, encoder: commandEncoder!)
         } catch {
             let nsError = error as NSError
             XCTAssert(nsError.domain == MTIErrorDomain)
@@ -281,7 +292,7 @@ final class UtilitiesTests: XCTestCase {
             commandEncoder?.endEncoding()
         }
         do {
-            try MTIFunctionArgumentsEncoder.encode(state.reflection.arguments, values: ["color": SIMD4<Float>(128, 0, 0, 0)], functionType: .kernel, encoder: commandEncoder!)
+            try encodeArguments(using: state.reflection, values: ["color": SIMD4<Float>(128, 0, 0, 0)], functionType: .kernel, encoder: commandEncoder!)
         } catch {
             let encoderError = try XCTUnwrap(error as? MTISIMDArgumentEncoder.Error)
             XCTAssert(encoderError == .argumentTypeMismatch)

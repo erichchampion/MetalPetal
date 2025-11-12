@@ -175,6 +175,7 @@ public class MTIVideoComposition {
         case unsupportedInstruction
     }
     
+    @preconcurrency
     private class Compositor: NSObject, AVVideoCompositing {
         
         class VideoCompositionRequest: Hashable, MTIMutableVideoCompositionRequest, MTITrackedVideoCompositionRequest {
@@ -265,14 +266,25 @@ public class MTIVideoComposition {
         }
         
         // These properties are required by AVVideoCompositing protocol.
-        // Using nonisolated computed properties to satisfy Swift 6 sendability requirements
-        nonisolated var sourcePixelBufferAttributes: [String : Any]? {
-            [kCVPixelBufferPixelFormatTypeKey as String: [kCVPixelFormatType_420YpCbCr8BiPlanarFullRange, kCVPixelFormatType_32BGRA, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange]] as [String : Any]?
+        nonisolated var sourcePixelBufferAttributes: [String : any Sendable]? {
+            Self.sourcePixelBufferAttributesValue
         }
 
-        nonisolated var requiredPixelBufferAttributesForRenderContext: [String : Any] {
-            [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA] as [String : Any]
+        nonisolated var requiredPixelBufferAttributesForRenderContext: [String : any Sendable] {
+            Self.requiredPixelBufferAttributesForRenderContextValue
         }
+        
+        private static let sourcePixelBufferAttributesValue: [String : any Sendable]? = {
+            [kCVPixelBufferPixelFormatTypeKey as String: [
+                kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
+                kCVPixelFormatType_32BGRA,
+                kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+            ] as any Sendable]
+        }()
+
+        private static let requiredPixelBufferAttributesForRenderContextValue: [String : any Sendable] = {
+            [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA as any Sendable]
+        }()
         
         private var pendingRequests: Set<VideoCompositionRequest> = []
         private let pendingRequestsLock = MTILockCreate()
